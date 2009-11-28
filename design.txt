@@ -1,0 +1,18 @@
+
+
+operations required
+
+make_schema
+
+install
+create
+upgrade
+deploy
+
+
+insert
+update
+delete
+select
+
+
