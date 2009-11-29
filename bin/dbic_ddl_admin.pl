@@ -42,7 +42,7 @@ my ($opts, $usage) = describe_options(
 		['config|C:s' => 'Supply the config file for parsing by Config::Any', { depends => 'config_stanza'} ],
 		['connect-info|n:s%' => ' supply the connect info as additonal options ie -I dsn=<dsn> user=<user> password=<pass> '],
 		['sql-dir|q:s' => 'The directory where sql diffs will be created'],
-		['sql-type|t:s' => 'The RDBMs falvour you wish to use'],
+		['sql-type|t:s' => 'The RDBMs flavour you wish to use'],
 		['version|v:i' => 'Supply a version install'],
 		['preversion|p:s' => 'The previous version to diff against',],
 	)
@@ -67,7 +67,7 @@ load $schema_class;
 # just load the config, return a hash
 my $config;
 if ($opts->{config}) {
-	eval "require Config::Anyf;" or die "Config::Any is required to parse the config";
+	eval "require Config::Any" or die "Config::Any is required to parse the config";
 	my $cfg = Config::Any->load_files ( {files => [$opts->{config}], use_ext =>1, flatten_to_hash=>1});
 
 	# just grab the config from the config file
