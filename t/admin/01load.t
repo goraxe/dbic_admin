@@ -22,18 +22,10 @@ use Test::More;                      # last test to print
 
 use Path::Class;
 use FindBin qw($Bin);
-use lib dir($Bin, '..','lib')->stringify;
-use lib dir($Bin,'lib')->stringify;
+use lib dir($Bin,'..', '..','lib')->stringify;
+use lib dir($Bin,'..', 'lib')->stringify;
 
 use ok 'DBIx::Class::Admin';
 
-use DBICTest;
-my $schema = DBICTest->init_schema(
-    no_deploy=>1,
-    no_populate=>1,
-	);
-
-my $admin = DBIx::Class::Admin->new(schema=> $schema);
-$admin->create('MySQL');
 
 done_testing;
