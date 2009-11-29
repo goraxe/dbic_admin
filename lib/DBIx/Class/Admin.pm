@@ -18,9 +18,13 @@ package DBIx::Class::Admin;
 
 use Moose;
 use MooseX::Types;
-use MooseX::Types::Path::Class;
-use Class::C3::Componentised;
+use MooseX::Types::Moose qw/Int HashRef ArrayRef Str Any/;
+use MooseX::Types::Path::Class qw(Dir File);
+#use DBIx::Class::Schema;
+use Try::Tiny;
+use parent 'Class::C3::Componentised';
 
+use Data::Dumper;
 =c
 		['lib|I:s' => 'Additonal library path to search in'], 
 		['schema|s:s' => 'The class of the schema to load', { required => 1 } ],
@@ -52,7 +56,7 @@ use Class::C3::Componentised;
 =cut
 has lib => (
 	is		=> 'ro',
-	isa		=> 'Dir',
+	isa		=> Dir,
 	coerce	=> 1,
 	trigger => \&_set_inc,
 );
@@ -65,9 +69,10 @@ sub _set_inc {
 
 has 'schema_class' => (
 	is		=> 'ro',
-	isa		=> 'ClassName',
+	isa		=> 'Str',
 	coerce	=> 1,
 );
+
 
 has 'schema' => (
 	is			=> 'ro',
@@ -75,11 +80,48 @@ has 'schema' => (
 	lazy_build	=> 1,
 );
 
+
+
 sub _build_schema {
 	my ($self)  = @_;
-	ensure_class_loaded($self->schema_class);
-	return $self->schema_class->connect($self->connect_info,  );
+	$self->ensure_class_loaded($self->schema_class);
+	warn Dumper $self->connect_info();
+
+	return $self->schema_class->connect($self->connect_info()},  $self->connect_info->[3], { ignore_version => 1} );
 }
+
+has 'connect_info' => (
+	is			=> 'ro',
+	isa			=> ArrayRef,
+	lazy_build	=> 1,
+);
+
+sub _build_connect_info {
+	my ($self) = @_;
+	return find_stanza($self->config, $self->config_stanza);
+}
+
+has config => (
+	is			=> 'ro',
+	isa			=> HashRef,
+	lazy_build	=> 1,
+);
+
+sub _build_config {
+	my ($self) = @_;
+	try { require 'Config::Any'; } catch { die "Config::Any is required to parse the config file"; };
+
+	my $cfg = Config::Any->load_files ( {files => [$self->config_file], use_ext =>1, flatten_to_hash=>1});
+
+	# just grab the config from the config file
+	$cfg = $cfg->{$self->config_file};
+	return $cfg;
+}
+
+has config_file => (
+	is			=> 'ro',
+	isa			=> File,
+);
 
 has 'config_stanza' => (
 	is			=> 'ro',
@@ -88,9 +130,11 @@ has 'config_stanza' => (
 
 has 'sql_dir' => (
 	is			=> 'ro',
-	isa			=> 'Dir',
+	isa			=> Dir,
 	coerce		=> 1,
 );
+
+
 
 has 'sql_type' => (
 	is			=> 'ro',
@@ -114,7 +158,11 @@ sub create {
 		print "attempting to create diff file for ".$self->preversion."\n";
 	}
 	my $schema = $self->schema();
-	$schema->create_ddl_dir( $sqlt_type, $schema->schema_version, $self->sql_dir, $self->preversion );
+#	warn "running with params sqlt_type = $sqlt_type, version = " .$schema->schema_version . " sql_dir = " . $self->sql_dir . " preversion = " . ($self->has_preversion ?  $self->preversion : "" ). "\n";
+	# create the dir if does not exist
+	$self->sql_dir->mkpath() if ( ! -d $self->sql_dir);
+
+	$schema->create_ddl_dir( $sqlt_type, (defined $schema->schema_version ? $schema->schema_version : ""), $self->sql_dir->stringify, $self->preversion );
 }
 
 sub upgrade {
